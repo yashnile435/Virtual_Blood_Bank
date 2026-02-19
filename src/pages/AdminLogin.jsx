@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
 const AdminLogin = () => {
     const navigate = useNavigate();
@@ -24,7 +26,7 @@ const AdminLogin = () => {
 
             if (data.user) {
                 // Check if user is in admins table
-                const { data: adminData, error: adminError } = await supabase
+                const { data: adminData } = await supabase
                     .from('admins')
                     .select('*')
                     .eq('id', data.user.id)
@@ -53,41 +55,42 @@ const AdminLogin = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 text-white">
-            <div className="w-full max-w-md bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-700">
-                <div className="bg-red-900 p-6 text-center border-b border-red-800">
-                    <h2 className="text-2xl font-bold tracking-wider">ADMIN CONTROL</h2>
-                    <p className="text-red-200 text-xs uppercase tracking-widest mt-1">Authorized Personnel Only</p>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                <div className="bg-red-600 p-6 text-center border-b border-red-500 relative">
+
+                    <h2 className="text-2xl font-bold tracking-wider text-white">ADMIN CONTROL</h2>
+                    <p className="text-red-100 text-xs uppercase tracking-widest mt-1">Authorized Personnel Only</p>
                 </div>
 
                 <div className="p-8">
                     {error && (
-                        <div className="mb-4 p-3 bg-red-900/50 border border-red-700 text-red-200 rounded text-sm text-center">
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm text-center font-medium">
                             {error}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-400 uppercase">System ID</label>
+                            <label className="text-xs font-bold text-gray-500 uppercase">System ID</label>
                             <input
                                 type="email"
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none text-white placeholder-gray-500 transition-all basic-input"
+                                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-100 outline-none text-gray-900 placeholder-gray-400 transition-all font-medium"
                                 placeholder="admin@system.local"
                             />
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-400 uppercase">Access Key</label>
+                            <label className="text-xs font-bold text-gray-500 uppercase">Access Key</label>
                             <input
                                 type="password"
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none text-white placeholder-gray-500 transition-all basic-input"
+                                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-100 outline-none text-gray-900 placeholder-gray-400 transition-all font-medium"
                                 placeholder="••••••••"
                             />
                         </div>
@@ -95,11 +98,20 @@ const AdminLogin = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className={`w-full py-3 mt-6 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold tracking-wide shadow-lg transition-all transform active:scale-95 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`w-full py-3 mt-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold tracking-wide shadow-md hover:shadow-lg transition-all transform active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
                             {loading ? 'AUTHENTICATING...' : 'ACCESS DASHBOARD'}
                         </button>
                     </form>
+
+                    <div className="mt-4 text-center">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="w-full py-3 rounded-lg border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-all text-sm uppercase tracking-wide"
+                        >
+                            Login Page
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
