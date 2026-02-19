@@ -8,6 +8,7 @@ import UserSignup from "./pages/UserSignup"
 import UserLogin from "./pages/UserLogin"
 import UserDashboard from "./pages/UserDashboard"
 import AdminLogin from "./pages/AdminLogin"
+import AdminDashboard from "./pages/AdminDashboard"
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
 
         {/* Admin Routes */}
         <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
       </Routes>
     </BrowserRouter>
   )

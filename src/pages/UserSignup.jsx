@@ -75,6 +75,9 @@ const UserSignup = () => {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
                 <div className="bg-red-600 p-6 text-center text-white">
+                    <div className="inline-flex items-center justify-center p-3 rounded-full bg-white mb-4 shadow-md">
+                        <img src="/logo.png" alt="VBBS Logo" className="h-12 w-auto object-contain" />
+                    </div>
                     <h2 className="text-2xl font-bold">Patient Registration</h2>
                     <p className="text-red-100 text-sm mt-1">Join to find and request blood</p>
                 </div>

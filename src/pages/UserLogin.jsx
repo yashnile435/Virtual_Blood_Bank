@@ -37,10 +37,8 @@ const UserLogin = () => {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
                 <div className="bg-red-600 p-6 text-center text-white">
-                    <div className="inline-block p-3 rounded-full bg-red-500 mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                    <div className="inline-flex items-center justify-center p-3 rounded-full bg-white mb-4 shadow-md">
+                        <img src="/logo.png" alt="VBBS Logo" className="h-12 w-auto object-contain" />
                     </div>
                     <h2 className="text-2xl font-bold">Patient Login</h2>
                     <p className="text-red-100 text-sm">Welcome back</p>

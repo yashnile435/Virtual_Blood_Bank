@@ -10,8 +10,11 @@ import {
     User,
     LogOut,
     CheckCircle,
-    AlertCircle
+    AlertCircle,
+    Clock,
+    XCircle
 } from 'lucide-react';
+
 
 const UserDashboard = () => {
     const navigate = useNavigate();
@@ -25,39 +28,98 @@ const UserDashboard = () => {
     const [searchResults, setSearchResults] = useState([]);
     const [searchLoading, setSearchLoading] = useState(false);
     const [searched, setSearched] = useState(false);
+    // Requests State
+    const [myRequests, setMyRequests] = useState([]);
+    const [myRequestsLoading, setMyRequestsLoading] = useState(false);
 
     // Booking State
     const [bookingModalOpen, setBookingModalOpen] = useState(false);
     const [selectedBank, setSelectedBank] = useState(null);
-    const [bookingFor, setBookingFor] = useState('myself'); // 'myself' or 'other'
+    const [bookingMessage, setBookingMessage] = useState(null);
+    const [bookingQuantity, setBookingQuantity] = useState(1);
+    const [bookingFor, setBookingFor] = useState('SELF'); // 'SELF' or 'OTHER'
     const [patientName, setPatientName] = useState('');
     const [hospitalName, setHospitalName] = useState('');
     const [hospitalAddress, setHospitalAddress] = useState('');
     const [confirmDate, setConfirmDate] = useState(false);
     const [bookingLoading, setBookingLoading] = useState(false);
-    const [bookingMessage, setBookingMessage] = useState(null);
+
+    const fetchMyRequests = async (userId) => {
+        setMyRequestsLoading(true);
+        // We need blood bank name, so we join. 
+        // Supabase join syntax:
+        const { data, error } = await supabase
+            .from('blood_requests')
+            .select(`
+                *,
+                blood_banks ( name )
+            `)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching requests:', error);
+        }
+
+        if (data) setMyRequests(data);
+        setMyRequestsLoading(false);
+    };
 
     useEffect(() => {
+        let channel;
+
         const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                navigate('/user-login');
-                return;
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    navigate('/user-login');
+                    return;
+                }
+                setUser(user);
+
+                // Fetch user profile
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (error) console.error('Error fetching profile:', error);
+
+                setUserData(data);
+                if (data) setPatientName(data.name);
+
+                await fetchMyRequests(user.id);
+
+                // Realtime subscription for my requests
+                channel = supabase
+                    .channel('realtime-my-requests')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'blood_requests',
+                            filter: `user_id=eq.${user.id}`
+                        },
+                        (payload) => {
+                            fetchMyRequests(user.id);
+                        }
+                    )
+                    .subscribe();
+
+            } catch (err) {
+                console.error('Error in dashboard initialization:', err);
+            } finally {
+                setLoading(false);
             }
-            setUser(user);
-
-            // Fetch user profile
-            const { data } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-            setUserData(data);
-            if (data) setPatientName(data.name);
-
-            setLoading(false);
         };
+
         fetchUser();
+
+        return () => {
+            if (channel) supabase.removeChannel(channel);
+        };
     }, [navigate]);
 
     const handleSearch = async (e) => {
@@ -110,15 +172,23 @@ const UserDashboard = () => {
         setSelectedBank(item);
         setBookingModalOpen(true);
         setBookingMessage(null);
+        setBookingQuantity(1);
+        setBookingFor('SELF');
         // Reset patient name if booking for myself
-        if (bookingFor === 'myself' && userData) {
+        if (userData) {
             setPatientName(userData.name);
         }
     };
 
     const handleBooking = async (e) => {
         e.preventDefault();
+
         if (!confirmDate) return;
+        if (bookingQuantity > selectedBank.quantity) {
+            setBookingMessage({ type: 'error', text: `Only ${selectedBank.quantity} units available.` });
+            return;
+        }
+
         setBookingLoading(true);
         setBookingMessage(null);
 
@@ -135,26 +205,25 @@ const UserDashboard = () => {
                         hospital_name: hospitalName,
                         hospital_address: hospitalAddress,
                         required_within_30_days: confirmDate,
-                        status: 'APPROVED' // Auto-approve for demo + decrement logic
+                        status: 'PENDING',
+                        quantity: bookingQuantity,
+                        booking_for: bookingFor
                     }
                 ]);
 
+
             if (requestError) throw requestError;
 
-            // 2. Decrement inventory
-            const newQuantity = selectedBank.quantity - 1;
-            const { error: updateError } = await supabase
-                .from('blood_inventory')
-                .update({ quantity: newQuantity })
-                .eq('id', selectedBank.id);
+            // No inventory update here - waits for approval
 
-            if (updateError) throw updateError;
+            setBookingMessage({ type: 'success', text: 'Request submitted! Waiting for blood bank approval.' });
 
-            setBookingMessage({ type: 'success', text: 'Booking confirmed! Blood unit reserved successfully.' });
+            // Refresh requests list
+            fetchMyRequests(user.id);
 
-            // Update local state to reflect new quantity
             setSearchResults(prev => prev.map(item =>
-                item.id === selectedBank.id ? { ...item, quantity: newQuantity } : item
+                // item.id === selectedBank.id ? { ...item, quantity: newQuantity } : item
+                item // Do not reduce quantity locally yet
             ));
 
             setTimeout(() => {
@@ -176,6 +245,7 @@ const UserDashboard = () => {
     };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading Dashboard...</div>;
+    if (!user) return null;
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
@@ -202,9 +272,66 @@ const UserDashboard = () => {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                {/* My Requests Section */}
+                <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <Clock className="h-6 w-6 text-red-600" />
+                        My Blood Requests
+                    </h2>
+
+                    {myRequestsLoading ? (
+                        <div className="text-center py-6 text-gray-500">Loading history...</div>
+                    ) : myRequests.length === 0 ? (
+                        <p className="text-gray-500 text-sm">You haven't made any blood requests yet.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="text-xs font-semibold text-gray-500 uppercase border-b border-gray-100">
+                                        <th className="px-4 py-3">Blood Bank</th>
+                                        <th className="px-4 py-3">Group</th>
+                                        <th className="px-4 py-3">Qty</th>
+                                        <th className="px-4 py-3">For</th>
+                                        <th className="px-4 py-3">Date</th>
+                                        <th className="px-4 py-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm divide-y divide-gray-50">
+                                    {myRequests.map((req) => (
+                                        <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-4 py-3 font-medium text-gray-900">
+                                                {req.blood_banks?.name || 'Unknown Bank'}
+                                            </td>
+                                            <td className="px-4 py-3 font-bold text-gray-700">{req.blood_group}</td>
+                                            <td className="px-4 py-3 font-medium text-gray-900">{req.quantity || 1}</td>
+                                            <td className="px-4 py-3 text-xs font-medium text-gray-500">{req.booking_for || 'SELF'}</td>
+                                            <td className="px-4 py-3 text-gray-500">
+                                                {new Date(req.created_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`
+                                                    inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold capitalize
+                                                    ${req.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
+                                                        req.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                                                            'bg-yellow-100 text-yellow-700'}
+                                                `}>
+                                                    {req.status === 'APPROVED' && <CheckCircle className="h-3 w-3" />}
+                                                    {req.status === 'REJECTED' && <XCircle className="h-3 w-3" />}
+                                                    {req.status === 'PENDING' && <Clock className="h-3 w-3" />}
+                                                    {req.status.toLowerCase()}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </section>
+
                 {/* Search Section */}
-                <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-8">
+                <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
                     <h1 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <Search className="h-6 w-6 text-red-600" />
                         Find Blood
@@ -348,12 +475,12 @@ const UserDashboard = () => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Booking For</label>
                                     <div className="flex gap-4">
-                                        <label className="flex items-center gap-2 cursor-pointer border border-gray-200 p-3 rounded-lg w-full hover:bg-gray-50 transition-colors">
+                                        <label className={`flex items-center gap-2 cursor-pointer border p-3 rounded-lg w-full transition-colors ${bookingFor === 'SELF' ? 'border-red-200 bg-red-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                                             <input
                                                 type="radio"
                                                 name="bookingFor"
-                                                value="myself"
-                                                checked={bookingFor === 'myself'}
+                                                value="SELF"
+                                                checked={bookingFor === 'SELF'}
                                                 onChange={(e) => {
                                                     setBookingFor(e.target.value);
                                                     setPatientName(userData.name);
@@ -362,12 +489,12 @@ const UserDashboard = () => {
                                             />
                                             <span className="text-sm font-medium">Myself</span>
                                         </label>
-                                        <label className="flex items-center gap-2 cursor-pointer border border-gray-200 p-3 rounded-lg w-full hover:bg-gray-50 transition-colors">
+                                        <label className={`flex items-center gap-2 cursor-pointer border p-3 rounded-lg w-full transition-colors ${bookingFor === 'OTHER' ? 'border-red-200 bg-red-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                                             <input
                                                 type="radio"
                                                 name="bookingFor"
-                                                value="other"
-                                                checked={bookingFor === 'other'}
+                                                value="OTHER"
+                                                checked={bookingFor === 'OTHER'}
                                                 onChange={(e) => {
                                                     setBookingFor(e.target.value);
                                                     setPatientName('');
@@ -377,6 +504,21 @@ const UserDashboard = () => {
                                             <span className="text-sm font-medium">Someone Else</span>
                                         </label>
                                     </div>
+                                </div>
+
+                                {/* Quantity Field */}
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-semibold text-gray-700">Number of Units Required</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max={selectedBank.quantity}
+                                        required
+                                        value={bookingQuantity}
+                                        onChange={(e) => setBookingQuantity(parseInt(e.target.value))}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-100 outline-none"
+                                    />
+                                    <p className="text-xs text-gray-500">Available Stock: {selectedBank.quantity}</p>
                                 </div>
 
                                 <div className="space-y-1">
@@ -416,26 +558,30 @@ const UserDashboard = () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
-                                    <label className="flex items-start gap-3 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={confirmDate}
-                                            onChange={(e) => setConfirmDate(e.target.checked)}
-                                            className="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 rounded border-gray-300"
-                                        />
-                                        <span className="text-sm text-gray-700 leading-tight">
-                                            I confirm that this blood unit is required for a patient within the next 30 days. Providing false information may lead to account suspension.
-                                        </span>
-                                    </label>
+                                <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex gap-3">
+                                    <AlertCircle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-bold text-yellow-800 mb-1">Important Notice</p>
+                                        <label className="flex items-start gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={confirmDate}
+                                                onChange={(e) => setConfirmDate(e.target.checked)}
+                                                className="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 rounded border-gray-300 shrink-0"
+                                            />
+                                            <span className="text-sm text-gray-700 leading-tight">
+                                                I confirm that this blood unit is required for a patient within the next 30 days. Providing false information may lead to account suspension.
+                                            </span>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <button
                                     type="submit"
                                     disabled={!confirmDate || bookingLoading}
                                     className={`w-full py-3.5 rounded-xl text-white font-bold shadow-md transition-all ${!confirmDate || bookingLoading
-                                            ? 'bg-gray-400 cursor-not-allowed'
-                                            : 'bg-red-600 hover:bg-red-700 hover:shadow-lg active:scale-95'
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-red-600 hover:bg-red-700 hover:shadow-lg active:scale-95'
                                         }`}
                                 >
                                     {bookingLoading ? 'Processing Booking...' : 'Confirm Booking'}

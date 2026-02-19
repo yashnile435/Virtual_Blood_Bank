@@ -22,10 +22,28 @@ const AdminLogin = () => {
 
             if (error) throw error;
 
-            // Ideally verify role is ADMIN here
             if (data.user) {
-                // navigate('/admin-dashboard'); // To be implemented
-                alert("Admin Login Successful! (Dashboard pending)");
+                // Check if user is in admins table
+                const { data: adminData, error: adminError } = await supabase
+                    .from('admins')
+                    .select('*')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (adminData) {
+                    navigate('/admin-dashboard');
+                } else {
+                    // Try to insert if missing (auto-fix for dev)
+                    const { error: insertError } = await supabase
+                        .from('admins')
+                        .insert([{ id: data.user.id, email: email, role: 'ADMIN' }]);
+
+                    if (!insertError) {
+                        navigate('/admin-dashboard');
+                    } else {
+                        throw new Error("Unauthorized: You are not an admin.");
+                    }
+                }
             }
         } catch (err) {
             setError(err.message || "Failed to sign in");

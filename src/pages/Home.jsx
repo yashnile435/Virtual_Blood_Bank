@@ -6,8 +6,8 @@ const Home = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-red-50 to-white flex flex-col items-center justify-center p-6 font-sans">
             <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-                <div className="inline-flex items-center justify-center p-2 bg-red-100 rounded-full mb-4">
-                    <span className="text-red-600 font-bold px-3">VBBS</span>
+                <div className="inline-flex items-center justify-center mb-6">
+                    <img src="/logo.png" alt="VBBS Logo" className="h-24 w-auto object-contain drop-shadow-md" />
                 </div>
                 <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
                     Virtual Blood Bank System
