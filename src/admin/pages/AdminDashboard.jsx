@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -73,7 +73,7 @@ const AdminDashboard = () => {
     const checkAdmin = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-            navigate('/admin-login');
+            navigate('/admin/login');
             return;
         }
 
@@ -243,7 +243,7 @@ const AdminDashboard = () => {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        navigate('/admin-login');
+        navigate('/admin/login');
     };
 
     const StatCard = ({ title, value, icon: Icon, color, subtext }) => (

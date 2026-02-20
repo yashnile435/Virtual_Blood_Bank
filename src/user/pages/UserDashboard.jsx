@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
     Search,
@@ -70,7 +71,7 @@ const UserDashboard = () => {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
-                    navigate('/user-login');
+                    navigate('/user/login');
                     return;
                 }
                 setUser(user);
@@ -239,7 +240,7 @@ const UserDashboard = () => {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        navigate('/user-login');
+        navigate('/user/login');
     };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading Dashboard...</div>;

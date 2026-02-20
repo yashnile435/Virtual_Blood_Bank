@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -33,7 +33,7 @@ const AdminLogin = () => {
                     .single();
 
                 if (adminData) {
-                    navigate('/admin-dashboard');
+                    navigate('/admin/dashboard');
                 } else {
                     // Try to insert if missing (auto-fix for dev)
                     const { error: insertError } = await supabase
@@ -41,7 +41,7 @@ const AdminLogin = () => {
                         .insert([{ id: data.user.id, email: email, role: 'ADMIN' }]);
 
                     if (!insertError) {
-                        navigate('/admin-dashboard');
+                        navigate('/admin/dashboard');
                     } else {
                         throw new Error("Unauthorized: You are not an admin.");
                     }

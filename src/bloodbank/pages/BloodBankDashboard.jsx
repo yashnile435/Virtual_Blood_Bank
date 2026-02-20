@@ -1,16 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
     LogOut,
     User,
     Droplet,
-
     Menu,
     X,
     Plus,
     Trash2,
-
     Activity,
     FileText,
     CheckCircle,
@@ -54,7 +53,7 @@ const BloodBankDashboard = () => {
         const fetchData = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                navigate('/');
+                navigate('/bloodbank/login');
                 return;
             }
             setUser(user);
@@ -308,7 +307,7 @@ const BloodBankDashboard = () => {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        navigate('/');
+        navigate('/bloodbank/login');
     };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading Dashboard...</div>;

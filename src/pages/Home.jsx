@@ -31,13 +31,13 @@ const Home = () => {
                         </p>
                         <div className="space-y-3">
                             <Link
-                                to="/bloodbank-login"
+                                to="/bloodbank/login"
                                 className="block w-full text-center py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
                             >
                                 Login as Bank
                             </Link>
                             <Link
-                                to="/signup"
+                                to="/bloodbank/signup"
                                 className="block w-full text-center py-3 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 transition-colors border border-gray-200"
                             >
                                 Register New Bank
@@ -59,13 +59,13 @@ const Home = () => {
                         </p>
                         <div className="space-y-3">
                             <Link
-                                to="/user-login"
+                                to="/user/login"
                                 className="block w-full text-center py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
                             >
                                 Login as Patient
                             </Link>
                             <Link
-                                to="/user-signup"
+                                to="/user/signup"
                                 className="block w-full text-center py-3 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 transition-colors border border-gray-200"
                             >
                                 Create Account
@@ -87,14 +87,11 @@ const Home = () => {
                         </p>
                         <div className="space-y-3">
                             <Link
-                                to="/admin-login"
+                                to="/admin/login"
                                 className="block w-full text-center py-3 rounded-xl bg-gray-800 text-white font-bold hover:bg-gray-900 transition-colors shadow-lg shadow-gray-200"
                             >
                                 Admin Access
                             </Link>
-                            <div className="py-3 text-center text-gray-300 text-sm font-medium cursor-not-allowed">
-                                Restricted Access
-                            </div>
                         </div>
                     </div>
                 </div>
